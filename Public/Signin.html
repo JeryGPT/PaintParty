@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login page</title>
+    <link href="./Css/auth.css" rel="stylesheet">
+    <link href="./Css/styles.css" rel="stylesheet">
+
+</head>
+<body>
+    
+    <div class="wrapper">
+        <form action="/api/Authentication" method="POST">
+            <h1>LOGIN</h1>
+            <input class="form-input" name="username" placeholder="Username" type="text" required maxlength="15" required>
+            <input class="form-input" name="password" placeholder="Password" type="password" required minlength="6" required>
+            <div class="flex-row remember-me">
+                <input name="remember" placeholder="Password" type="checkbox" id="remember">
+                <label for="remember">Remember me</label>
+            </div>
+            <button class="login-button" name="action" value="login">login</button>
+            <p>Don't have an account?<a href="./Signup.html">Register here</a></p>
+        </form>
+    </div>
+    <script>
+        const frame = document.querySelector('.wrapper')
+        frame.addEventListener("mousemove", (event) => {
+        const frame_position = frame.getBoundingClientRect();
+
+        const m_x = frame.offsetWidth
+        const m_y = frame.offsetHeight
+        const x_centr = parseFloat(frame_position.x) + parseFloat(frame.clientWidth / 2)
+        const y_centr = parseFloat(frame_position.y) + parseFloat(frame.clientHeight / 2)
+        const dif_x = x_centr  - window.innerWidth / 2
+        const dif_y = y_centr - window.innerHeight / 2
+        
+        const x = -(event.clientX - (window.innerWidth / 2) - dif_x)
+        const y = (event.clientY - window.innerHeight / 2 - dif_y)
+        const max = 20
+
+        const t_x = m_x / max
+        const t_y = m_y / max
+        const tr_x = x / t_x
+        const tr_y = y / t_y
+        
+        frame.style.transform = `rotateX(${tr_y}deg) rotateY(${tr_x}deg)`
+
+    });
+
+    frame.addEventListener("mouseleave", () => {
+        frame.style.transform = `rotateX(0deg) rotateY(0deg)`
+    })
+
+    //Skrypcik z poprzedniego projektu (walczylem godzinami zeby to ladnie dzialalo)( ZERO CZACIKA)
+    </script>
+</body>
+</html>

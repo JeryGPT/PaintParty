@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register page</title>
+    <link href="./Css/auth.css" rel="stylesheet">
+    <link href="./Css/styles.css" rel="stylesheet">
+
+</head>
+<body>
+    
+    <div class="wrapper">
+        <form action="api/Authentication" method="post">
+            <input type="hidden" name="action" value="register">
+            <h1>Register</h1>
+                <input class="form-input" name="username" placeholder="Username" type="text" maxlength="15" required>
+                <input class="form-input" name="password" placeholder="Password" type="password" minlength="6" required>
+                <input class="form-input" name="repeat-password" placeholder="Repeat Password" type="password" minlength="6" required>
+            <div class="flex-row remember-me">
+                <input placeholder="Password" name="remember" type="checkbox" id="remember">
+                <label for="remember">Remember me</label>
+            </div>
+            <button class="login-button" name="actiion" value="register">Register</button>
+            <p>Already have an account?<a href="./Signin.html">Login here</a></p>
+        </form>
+    </div>
+    <script>
+        const frame = document.querySelector('.wrapper');
+
+        frame.addEventListener("mousemove", (event) => {
+            const frameRect = frame.getBoundingClientRect();
+
+            const frameWidth = frame.offsetWidth;
+            const frameHeight = frame.offsetHeight;
+
+            const centerX = parseFloat(frameRect.x) + parseFloat(frame.clientWidth / 2);
+            const centerY = parseFloat(frameRect.y) + parseFloat(frame.clientHeight / 2);
+
+            const offsetX = centerX - window.innerWidth / 2;
+            const offsetY = centerY - window.innerHeight / 2;
+
+            const mouseX = -(event.clientX - (window.innerWidth / 2) - offsetX);
+            const mouseY = event.clientY - (window.innerHeight / 2) - offsetY;
+
+            const transformLimit = 20;
+
+            const tiltX = frameWidth / transformLimit;
+            const tiltY = frameHeight / transformLimit;
+
+            const rotateX = mouseY / tiltY;
+            const rotateY = mouseX / tiltX;
+
+            frame.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        frame.addEventListener("mouseleave", () => {
+            frame.style.transform = `rotateX(0deg) rotateY(0deg)`;
+        });
+
+
+    //Skrypcik z poprzedniego projektu (walczylem godzinami zeby to ladnie dzialalo)
+    // ( ZERO CZACIKA)
+    // najpierw obliczalem pozycje ramki (niezaleznie gdzie sie znajduje wiec jest reusable)
+    // wczesniej ten kod byl krotszy ale dzialal tylko kiedy ramka byla na samym srodku ekranu
+    // najpierw licze roznice miedzy srodkiem ekranu a srodkiem ramki
+    // nastepnie te roznice odejmuje od pozycji myszy wzgledem srodka ekranu 
+    //
+    // normalnie koordynaty zaczynaja sie od lewego gornego rogu (chyba) wiec je przesunale,
+    // by punkt (0,0) byl zawsze NA SRODKU ramki
+    </script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+RewriteEngine On
+RewriteRule ^api/login$ ../Server/login.php [L]
+RewriteRule ^api/register$ ../Server/register.php [L]

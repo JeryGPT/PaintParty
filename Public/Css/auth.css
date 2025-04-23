@@ -1,0 +1,85 @@
+* {
+    font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    background: url('../assets/img/bg-img-2.jpg');
+    background-size: cover;
+    perspective: 1000px;
+}
+
+.wrapper {
+    display: flex;
+    width: 300px;
+    border: 2px rgba(255, 255, 255, 0.404) solid;
+    background-color: transparent;
+    justify-content: center;
+    text-align: center;
+    padding: 30px 40px;
+    backdrop-filter: blur(20px);
+    border-radius: 24px;
+    color: white;
+    box-shadow: 0px 0 12px rgba(0, 0, 0, 0.507);
+    transition: transform 0.1s ease;
+}
+
+.input-div{
+
+}
+
+input.form-input {
+    background: transparent;
+    outline: none;
+    width: 97%;
+    height: 50px;
+    margin: 10px 0;
+    border: 2.2px solid rgba(0, 0, 0, 0.185);
+    border-radius: 20px;
+    border-color: rgba(255, 255, 255, 0.555);
+    padding: 0px 0px 0px 20px;
+    color: white;
+    font-size: 16px;
+    
+}
+
+input.form-input::placeholder {
+    color: white;
+    font-size: 16px;
+}
+
+
+
+.wrapper h1 {
+    font-size: 35px;
+    margin-bottom: 35px;
+}
+
+
+
+form {
+    width: 100%;
+}
+
+
+.wrapper .remember-me{
+    margin-bottom: 13px;
+}
+
+.wrapper button {
+    width: 100%;
+    border-radius: 13px;
+    border: none;
+    height: 40px;
+    font-size: 16px;
+}
+
+a {
+    color: rgb(166, 100, 228);
+}
+
