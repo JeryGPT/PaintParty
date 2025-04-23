@@ -11,7 +11,7 @@
 <body>
     
     <div class="wrapper">
-        <form action="/api/Authentication" method="POST">
+        <form>
             <h1>LOGIN</h1>
             <input class="form-input" name="username" placeholder="Username" type="text" required maxlength="15" required>
             <input class="form-input" name="password" placeholder="Password" type="password" required minlength="6" required>
@@ -19,7 +19,8 @@
                 <input name="remember" placeholder="Password" type="checkbox" id="remember">
                 <label for="remember">Remember me</label>
             </div>
-            <button class="login-button" name="action" value="login">login</button>
+            <p id="info-text" style="color: red; display: none;">Example error</p>
+            <button class="login-button" name="action">login</button>
             <p>Don't have an account?<a href="./Signup.html">Register here</a></p>
         </form>
     </div>
@@ -52,7 +53,11 @@
         frame.style.transform = `rotateX(0deg) rotateY(0deg)`
     })
 
-    //Skrypcik z poprzedniego projektu (walczylem godzinami zeby to ladnie dzialalo)( ZERO CZACIKA)
+
+     //Skrypcik z poprzedniego projektu (walczylem godzinami zeby to ladnie dzialalo)( ZERO CZACIKA)
     </script>
+
+    <script src="./Js/Signin.js"></script>
+    <script src="./auto_login.js"></script>
 </body>
 </html>

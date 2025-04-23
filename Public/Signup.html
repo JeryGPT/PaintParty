@@ -11,7 +11,7 @@
 <body>
     
     <div class="wrapper">
-        <form action="api/Authentication" method="post">
+        <form>
             <input type="hidden" name="action" value="register">
             <h1>Register</h1>
                 <input class="form-input" name="username" placeholder="Username" type="text" maxlength="15" required>
@@ -21,7 +21,8 @@
                 <input placeholder="Password" name="remember" type="checkbox" id="remember">
                 <label for="remember">Remember me</label>
             </div>
-            <button class="login-button" name="actiion" value="register">Register</button>
+            <p id="info-text" style="color: red; display: none;">Example error</p>
+            <button class="login-button" name="action" value="register">Register</button>
             <p>Already have an account?<a href="./Signin.html">Login here</a></p>
         </form>
     </div>
@@ -69,5 +70,7 @@
     // normalnie koordynaty zaczynaja sie od lewego gornego rogu (chyba) wiec je przesunale,
     // by punkt (0,0) byl zawsze NA SRODKU ramki
     </script>
+    <script src="./auto_login.js"></script>
+    <script src="./Js/Signup.js"></script>
 </body>
 </html>
