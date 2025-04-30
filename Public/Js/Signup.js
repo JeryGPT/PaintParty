@@ -21,7 +21,7 @@ action_button.addEventListener('click', e => {
 
         }else{
             if (data['cookie']){
-                document.cookie = `account_token=${data['cookie']}`
+                document.cookie = `account_token=${data['cookie']}; path=/; SameSite=None`;
             }
             info_text.style.display = 'block'
             info_text.innerText = data.message

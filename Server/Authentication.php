@@ -3,7 +3,7 @@ if (!extension_loaded('mysqli')) {
     die('mysqli extension is not enabled');
 }
 
-$JWT_KEY = 'TOTALFUCKINGNIGERALIBABAKEBABILOVWEKEBABANDGYROSGYROSJESTZAJEBISTYDAMN';
+$JWT_KEY = 'afa42da3lp';
 
 $servername = "kmpv0.h.filess.io";
 $username = "PaintParty_wouldbare";
@@ -22,6 +22,7 @@ function create_response($success, $message, $cookie=""){
 }
 
 function generate_JWT($username){
+    global $JWT_KEY;
     $jwt_header = json_encode(["alg" => "HS256", "typ" => "JWT"]);
     $jwt_payload = json_encode(["username" => $username, "exp" => time() + 43_200]);
     $data = base64_encode($jwt_header) . "." . base64_encode($jwt_payload);
@@ -32,9 +33,13 @@ function generate_JWT($username){
 }
 
 function check_JWT($JWT){
+    global $JWT_KEY;
+
     $fragments = explode('.', $JWT);
-    
+    error_log($JWT);
     $data = $fragments[0] . '.' . $fragments[1];
+    error_log('data: ' . $data);
+
     $decoded_payload = json_decode(base64_decode($fragments[1]), true);
     $secret = rtrim(base64_encode(hash_hmac('sha256', $data, $JWT_KEY)), "=");
     if ($secret == $fragments[2]){

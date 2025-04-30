@@ -26,11 +26,13 @@ function change_error_text(data){
         info_text.style.display = 'block'
         info_text.innerText = data.message
         info_text.style.color = 'red'
-
     }else{
         info_text.style.display = 'block'
         info_text.innerText = data.message
         info_text.style.color = 'lightgreen'
+        setTimeout(() => {
+            document.location.href = 'Paint.html'
+        }, 1500)
     }
 }
 
