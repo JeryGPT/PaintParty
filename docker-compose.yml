@@ -1,23 +1,40 @@
-version: '3.8'
+# ------------------------------------------------------------------
+# Bazujemy na oficjalnym obrazie z Apache+PHP
+# ------------------------------------------------------------------
+FROM php:8.2-apache
 
-services:
-  app:
-    image: php:8.2-cli
-    container_name: paintparty-app
-    working_dir: /app
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"   # PHP serwer
-      - "3000:3000"   # Node.js serwer
-    command: >
-      sh -c "
-        apt-get update &&
-        apt-get install -y nodejs npm curl git supervisor &&
-        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&
-        apt-get install -y nodejs &&
-        docker-php-ext-install mysqli &&
-        cd /app &&
-        npm install &&
-        supervisord -c /app/supervisord.conf
-      "
+# 1) Zainstaluj rozszerzenie mysqli
+RUN docker-php-ext-install mysqli
+
+# 2) Zainstaluj Node.js 18.x
+RUN apt-get update \
+ && apt-get install -y curl gnupg2 \
+ && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+ && apt-get install -y nodejs
+
+# 3) Supervisor do uruchamiania wielu procesów
+RUN apt-get install -y supervisor \
+ && mkdir -p /var/log/supervisor
+
+# 4) Skopiuj kod aplikacji
+WORKDIR /app
+COPY Public/        /var/www/html/          # frontend (HTML, JS, CSS, obrazy)
+COPY Server/*.php   /var/www/html/api/      # Authentication.php
+COPY Server/server.js /app/server.js        # serwer Node.js
+COPY package.json   /app/
+
+# 5) Zainstaluj zależności Node.js
+WORKDIR /app
+RUN npm install
+
+# 6) Skonfiguruj Apache (opcjonalnie: mod_rewrite, proxy itp.)
+RUN a2enmod rewrite
+
+# 7) Dodaj konfigurację supervisora
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 8) Otwórz porty (80 dla Apache, 3000 wewnętrznie dla Node)
+EXPOSE 80 3000
+
+# 9) Startujemy supervisor, który włączy Apache i Node
+CMD ["/usr/bin/supervisord", "-n"]
