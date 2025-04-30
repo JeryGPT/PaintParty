@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    image: php:8.2-cli
+    container_name: paintparty-app
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"   # PHP serwer
+      - "3000:3000"   # Node.js serwer
+    command: >
+      sh -c "
+        apt-get update &&
+        apt-get install -y nodejs npm curl git supervisor &&
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash - &&
+        apt-get install -y nodejs &&
+        docker-php-ext-install mysqli &&
+        cd /app &&
+        npm install &&
+        supervisord -c /app/supervisord.conf
+      "
