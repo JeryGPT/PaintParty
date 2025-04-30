@@ -1,40 +1,28 @@
-# ------------------------------------------------------------------
-# Bazujemy na oficjalnym obrazie z Apache+PHP
-# ------------------------------------------------------------------
+# Base image with PHP, Apache, and Node.js
 FROM php:8.2-apache
 
-# 1) Zainstaluj rozszerzenie mysqli
+# Install PHP extensions (e.g., mysqli)
 RUN docker-php-ext-install mysqli
 
-# 2) Zainstaluj Node.js 18.x
-RUN apt-get update \
- && apt-get install -y curl gnupg2 \
- && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
- && apt-get install -y nodejs
+# Install Node.js and npm
+RUN apt-get update && \
+    apt-get install -y curl gnupg && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    npm install -g npm
 
-# 3) Supervisor do uruchamiania wielu procesów
-RUN apt-get install -y supervisor \
- && mkdir -p /var/log/supervisor
+# Copy PHP files to Apache root
+COPY Public/ /var/www/html/
+COPY Server/Authentication.php /var/www/html/api/Authentication.php
 
-# 4) Skopiuj kod aplikacji
-WORKDIR /app
-COPY Public/        /var/www/html/          # frontend (HTML, JS, CSS, obrazy)
-COPY Server/*.php   /var/www/html/api/      # Authentication.php
-COPY Server/server.js /app/server.js        # serwer Node.js
-COPY package.json   /app/
-
-# 5) Zainstaluj zależności Node.js
+# Install Node.js server dependencies
+COPY package.json /app/package.json
+COPY Server/server.js /app/server.js
 WORKDIR /app
 RUN npm install
 
-# 6) Skonfiguruj Apache (opcjonalnie: mod_rewrite, proxy itp.)
-RUN a2enmod rewrite
-
-# 7) Dodaj konfigurację supervisora
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# 8) Otwórz porty (80 dla Apache, 3000 wewnętrznie dla Node)
+# Expose PHP port (Apache on port 80) and Node.js port (3000)
 EXPOSE 80 3000
 
-# 9) Startujemy supervisor, który włączy Apache i Node
-CMD ["/usr/bin/supervisord", "-n"]
+# Start both PHP and Node servers
+CMD service apache2 start && node server.js
