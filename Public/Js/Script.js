@@ -7,7 +7,7 @@ const size_input = document.getElementById('size-input')
 const size_text = document.getElementById('size-text')
 const body = document.querySelector('body')
 ctx.imageSmoothingEnabled = false;
-const grid_frequency = 8
+const grid_frequency = 2
 const width = canvas.width;
 const height = canvas.height;
 let mouse_down = false;
@@ -19,30 +19,79 @@ let tool = 'brush'
 let image_data;
 const bucket_btn = document.getElementById('bucket')
 const brush_btn = document.getElementById('brush')
+const eraser_btn = document.getElementById('eraser')
 const user_template = document.getElementById('user-template')
 const drawing_space = document.getElementById('drawing-space')
+const send_mes = document.getElementById('send-mes')
+const input_mes = document.getElementById('input-mes')
+const mes_space = document.getElementById('mes-space')
+const users_space = document.getElementById('users-container')
 ctx_grid.lineWidth = 0.1
 size = 1
-const socket = io("http://localhost:3000", {
+const socket = io("http://192.168.0.119:3000", {
     transports: ["websocket"],
     withCredentials: true
 });
 
+socket.emit('getUsers')
+socket.on('users', (data) => {
+    users_space.innerHTML = ''
+    data.forEach(user => {
+        const user_element = document.createElement('p')
+        users_space.appendChild(user_element)
+        user_element.innerText = user
+    })
+})
 
+
+
+const download = document.getElementById('download')
+download.addEventListener('mousedown', () => { // https://dzone.com/articles/how-to-save-html-canvas-as-an-image
+    let canvasUrl = canvas.toDataURL("image/jpeg", 0.5);
+    const createEl = document.createElement('a');
+    createEl.href = canvasUrl;
+    createEl.download = "obrazek";
+    createEl.click();
+    createEl.remove();
+})
 
 
 //MULTIPLAYER SHIT RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH
+input_mes.addEventListener('keydown', key => {
+    if (key.keyCode == 13){
+        socket.emit('newMessage', input_mes.value)
+        input_mes.value = ''
+    }
+})
+send_mes.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    socket.emit('newMessage', input_mes.value)
+    input_mes.value = ''
+})
+
+socket.on('newMessage', (message) => {
+    const message_element = mes_space.appendChild(document.createElement('p'))
+    message = message.replace('cookie', '');
+    message = message.replace('discord', '');
+
+    message_element.innerText = message
+    mes_space.scrollTo(0, mes_space.scrollHeight)
+})
+eraser_btn.addEventListener('mousedown', () => {
+    tool = 'eraser'
+})
+
 setInterval(() => {
     if (Object.keys(changed_pixels).length > 0){
         socket.emit('drawData', changed_pixels);
-        console.log(changed_pixels)
         changed_pixels = {} 
     }
 }, 50)
-
+socket.on('removeUser', (user) => {
+    removeUsersCursor(user)
+})
 socket.on('updateBoard', (data) => {
     for (let px in data){
-        console.log(data[px])
         changePixel(px.split(',')[0],px.split(',')[1], data[px].color, false, false)
     }
 })
@@ -52,23 +101,36 @@ socket.on('kickOut', () => {
     document.location.href = 'signin.html'
 })
 
+socket.on('setCanvas', (data) => {
+    for (let px in data){
+        const x_y = px.split(',')
+        changePixel(x_y[0], x_y[1], data[px].color, false,false)    
+    }
+})
+
 function addUsersCursor(user){
     const user_template_copy = user_template.cloneNode(true);
     const user_template_copy_nickname = user_template_copy.querySelector('p')
     user_template_copy_nickname.innerText = user
     user_template_copy.setAttribute('user', user)
     user_template_copy.style.display = 'block'
+    user_template_copy.style.position = 'absolute'
     drawing_space.appendChild(user_template_copy)
+}
+
+function removeUsersCursor(user) {
+    const userElement = getUsersFrame(user);
+    if (userElement) {
+        userElement.remove();
+    }
 }
 
 
 function changeUsersPosition(user,x,y,tool){
     const target_user = getUsersFrame(user)
-    console.log(tool)
     const target_user_icon = target_user.querySelector('img')
     switch (tool) {
         case 'bucket' : {
-            console.log('niga')
             target_user_icon.src = './assets/img/bucket.svg'
             break
         }
@@ -76,10 +138,15 @@ function changeUsersPosition(user,x,y,tool){
             target_user_icon.src = './assets/img/cursor.svg'
             break
         }
+        case 'eraser' : {
+            target_user_icon.src = './assets/img/cursor.svg'
+            break
+        }
     }
     if (target_user){
-        target_user.style.top = `${y}px`
-        target_user.style.left = `${x}px`
+        target_user.style.left = `${x * 100}%`;
+        target_user.style.top  = `${y * 100}%`;
+        
     }
 }
 
@@ -90,12 +157,11 @@ function getUsersFrame(user){
 }
 
 socket.on('changeUserPosition', data => {
-    console.log(data)
     const user = data.user;
     const x = data.x;
     const y = data.y;
     const tool = data.tool
-
+    if (user == 'Jery') console.log(x,y,)
     const target_user = getUsersFrame(user)
     if (!target_user){
         addUsersCursor(user)
@@ -103,8 +169,11 @@ socket.on('changeUserPosition', data => {
     changeUsersPosition(user, x, y, tool)
 })
 
-canvas.addEventListener('mousemove', (e) => {
-    socket.emit('updatePosition',e.offsetX, e.offsetY, tool)
+drawing_space.addEventListener('mousemove', (e) => {
+    const rect = drawing_space.getBoundingClientRect();
+    const relX = (e.clientX - rect.left) / rect.width;   // 0…1
+    const relY = (e.clientY - rect.top)  / rect.height;  
+    socket.emit('updatePosition',relX, relY, tool)
 })
 
 
@@ -169,7 +238,7 @@ function fixXY(x, y) { // zwraca x i y odpowiadajace gridzie
 
 
 
-function calculateSurrounding(cx, cy) {
+function calculateSurrounding(cx, cy, color=color_input.value) {
     cx = Math.floor(cx);
     cy = Math.floor(cy);
     //tutaj zapytalem chatgpt zeby powiedzial mi jak to moge wykonac, dal mi te rownanie
@@ -201,7 +270,7 @@ function calculateSurrounding(cx, cy) {
 
         if (equation <= Math.pow(radius, 2)) {
             approved_points.push(point)
-            changePixel(px,py,color_input.value)
+            changePixel(px,py,color)
         }
     });
 }
@@ -250,14 +319,18 @@ function changePixel(x, y, color = 'black', save_to_undo = true, yours=true) {//
     if (yours){
         addPixelToQueue(x,y,color)
     }
+
+    ctx.fillStyle = color;
+
+    if (save_to_undo && yours) {
+        modifyLatestUndo(x, y, color, getPixelColor(x, y))
+    }
     if (color == 'transparent'){
         erasePixel(x,y,yours)
         return
     }
-    ctx.fillStyle = color;
-    if (save_to_undo && yours) {
-        modifyLatestUndo(x, y, color, getPixelColor(x, y))
-    }
+    
+    
     ctx.fillRect(x * grid_frequency, y * grid_frequency, grid_frequency, grid_frequency);
 }
 
@@ -343,6 +416,11 @@ canvas.addEventListener('mousedown', (e) => {
             let dat = ctx.getImageData(0, 0, grid_canvas.width, grid_canvas.height)
             break
         }
+        case 'eraser': {
+            calculateSurrounding(fixed_x, fixed_y, 'transparent')
+            break
+        }
+        
     }
 
 })
@@ -355,12 +433,20 @@ let last_y;
 
 
 canvas.addEventListener('mousemove', (e) => {
-    if (mouse_down) {
+    if (mouse_down && (tool == 'brush' || tool == 'eraser')) {
+        console.log(tool)
+        let color;
+        if (tool == 'eraser') {
+            color = 'transparent'
+
+        }else{
+            color = color_input.value
+        }
 
         const fixed_xy = fixXY(e.offsetX, e.offsetY)
         const fixed_x = fixed_xy[0]
         const fixed_y = fixed_xy[1]
-        calculateSurrounding(fixed_x, fixed_y)
+        calculateSurrounding(fixed_x, fixed_y, color)
 
         if (last_y) {    //wygladzanie linii, bez tego troche dziurawe jest
             const dx = fixed_x - last_x;
@@ -381,13 +467,13 @@ canvas.addEventListener('mousemove', (e) => {
                     const x = last_x + (fixed_x - last_x) * (i / steps)
                     const y = last_y + (fixed_y - last_y) * (i / steps)
 
-                    calculateSurrounding(x, y)
+                    calculateSurrounding(x, y, color)
                 }
             }
         }
         last_x = fixed_x
         last_y = fixed_y
-        addPixelToQueue(fixed_x, fixed_y, color_input.value)
+        addPixelToQueue(fixed_x, fixed_y, color)
 
 
 

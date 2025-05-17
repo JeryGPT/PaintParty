@@ -8,7 +8,10 @@
         #canv {
             position: absolute;
             border: 2px solid whitesmoke;
-            
+            background-image: url('https://img.freepik.com/free-photo/paper-texture_1194-5999.jpg?semt=ais_hybrid&w=740');
+            background-size: cover;
+
+            background-repeat:no-repeat;
             image-rendering: crisp-edges;
             image-rendering: -moz-crisp-edges;
             image-rendering: -o-crisp-edges;
@@ -29,38 +32,103 @@
 
 
         body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
             cursor: url('./assets/img/cursor.svg') 0 25, auto;
+            background-image: url('./assets/img/nig.jpg');
         }
 
      
+        #drawing-space {
+            position: relative;
+            width: 800px;
+            height: 800px;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 3fr 1fr;  
+            grid-template-rows: 100%;
+            gap: 20px;
+            width: 80%;
+            height: 80%;
+        }
+
+
+        #mes-space{
+            margin-left: -75px;
+            overflow-y: auto;
+            word-break:break-all;
+        }
+
+
+        #users-container {
+            display: flex;
+            text-align: center;
+            flex-direction: column;
+            width: 120px;
+            height: 300px;
+            color: white;
+        }
+
 
 
 
     </style>
 </head>
 <body>
-    <input type="color" id="color-input">
-    <button id="bucket">BUCKET</button>
-    <button id="brush">BRUSH</button>
+    <div class="grid-container" style="margin: 0;">
+        <div style="display: flex; flex-direction: column; align-self: center; background-color: rgba(0, 0, 0, 0.53); align-content: center; padding: 0px 50px 20px 50px; justify-content: center;text-align: center; margin-left: -100px;">
+            <h2 style="color: white;">Local Chat</h2>
+            <div id="mes-space" style="height: 300px; width: 300px; margin-left: -125px; color: white;">
 
-    <div id="drawing-space" style="width: 800px; height: 800px;">
-        <canvas id="grid" width="800" height="800" style="position: absolute; pointer-events: none;"></canvas>
+            </div>
+            <div style="display: flex;">
+                <input id="input-mes"><button id="send-mes">>></button>
+
+            </div>
+        </div>
+        <div>
+            <div>
+                <button id="download">Save</button>
+                <input type="color" id="color-input">
+                <button id="bucket">BUCKET</button>
+                <button id="brush">BRUSH</button>
+                <button id="eraser">ERASER</button>
+            </div>
         
-        <canvas id="canv" width="800" height="800" >
-
-        </canvas>
-        <div id="user-template" style="display:none;position: absolute;pointer-events: none;">
-            <img src="./assets/img/cursor.svg" width="32">
-            <p id="nickname" style="margin-top: -3px;">Jery</p>
+            <div id="drawing-space">
+                <canvas id="grid" width="800" height="800" style="position: absolute; pointer-events: none;"></canvas>
+                
+                <canvas id="canv" width="800" height="800" >
+        
+                </canvas>
+                <div id="user-template" style="display:none;position: absolute;pointer-events: none;">
+                    <img src="./assets/img/cursor.svg" width="32">
+                    <p id="nickname" style="margin-top: -3px;">Jery</p>
+                </div>
+        
+            </div>
+            <input id="size-input" type="range" max="100" value="1" style="width: 800px;">
+            <p id="size-text">Size: </p>
+    
+        </div>
+        <div style="display: flex; flex-direction: column; align-self: center; background-color: rgba(0, 0, 0, 0.53); align-content: center;; justify-content: center;text-align: center; width: 200px;">
+            <div >
+                <h2 style="color: white;">Users online</h2>
+                <div id="users-container"></div>
+            </div>
         </div>
 
     </div>
-    <input id="size-input" type="range" max="100" value="1" style="width: 800px;">
-    <p id="size-text">Size: </p>
+
+
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <script src="./Js/Script.js">
-
+        
     </script>
 
 </body>

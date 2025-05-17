@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     if ($action == "register"){
         $username = mysqli_real_escape_string($conn, $_POST['username']);
         $password = mysqli_real_escape_string($conn, $_POST['password']);
-        $remember = $_POST['remember'] ?? false;
+        $remember = $_POST['remember'] ?? true;
         
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
