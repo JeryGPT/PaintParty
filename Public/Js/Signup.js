@@ -12,8 +12,9 @@ action_button.addEventListener('click', e => {
         body: new URLSearchParams(formData)
     } )
     .then(async res => {
+        console.log(res)
+
         const data = await res.json()
-        
         if (!data.success){
             info_text.style.display = 'block'
             info_text.innerText = data.message

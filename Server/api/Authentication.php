@@ -65,16 +65,25 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 
     if ($action == "register"){
+        $fields = ['username', 'password', 'repeat-password'];
+        foreach ($fields as $field) {
+            if (empty($_POST[$field])) {
+                echo create_response(false, "Missing field: $field");
+                $conn->close();
+                exit;
+            }
+        }
         $username = mysqli_real_escape_string($conn, $_POST['username']);
         $password = mysqli_real_escape_string($conn, $_POST['password']);
         $remember = $_POST['remember'] ?? true;
+
         
         $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
         $passwordRepeat = mysqli_real_escape_string($conn, $_POST['repeat-password']);
         
         if ($passwordRepeat != $password){
-            $resp = create_response(false, "Password are not the same");
+            $resp = create_response(false, "Passwords are not the same");
             echo $resp;
             $conn->close();
             exit ;
@@ -109,6 +118,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         
 
     }else if ($action == "login"){
+        $fields = ['username', 'password'];
+        foreach ($fields as $field) {
+            if (empty($_POST[$field])) {
+                echo create_response(false, "Missing field: $field");
+                $conn->close();
+                exit;
+            }
+        }
         $username = mysqli_real_escape_string($conn, $_POST['username']);
         $password = mysqli_real_escape_string($conn, $_POST['password']);
         $remember = $_POST['remember'] ?? false;

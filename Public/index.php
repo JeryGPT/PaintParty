@@ -3,7 +3,7 @@
 $request = $_SERVER['REQUEST_URI'];
 
 if (str_starts_with($request, '/api/')) {
-    $apiPath = realpath(__DIR__ . '/../Server/' . basename($request) . ".php");
+    $apiPath = realpath(__DIR__ . '/../Server/api/' . basename($request) . ".php");
     if ($apiPath && file_exists($apiPath)) {
         include $apiPath;
         exit;

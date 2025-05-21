@@ -13,7 +13,7 @@ const height = canvas.height;
 let mouse_down = false;
 let undo_stack = []
 let current_move = {}
-const MAX_UNDO = 10
+const MAX_UNDO = 50
 let changed_pixels = {}
 let tool = 'brush'
 let image_data;
@@ -26,12 +26,156 @@ const send_mes = document.getElementById('send-mes')
 const input_mes = document.getElementById('input-mes')
 const mes_space = document.getElementById('mes-space')
 const users_space = document.getElementById('users-container')
+const MAX_ZOOM = 4
+const ZOOM_STEP = 0.25
+const MIN_ZOOM = 0
+
+
+const submit_lobby = document.getElementById('submit-lobby2')
+const lobby_desc = document.getElementById('lobby-desc2')
+const lobby_space = document.getElementById('lobby-space2')
+const lobby_name = document.getElementById('lobby-name2')
+const lobby_visibility = document.getElementById('lobby-visibility2')
+let clicked_id;
+let zoom = 1
 ctx_grid.lineWidth = 0.1
 size = 1
-const socket = io("http://192.168.0.119:3000", {
+const socket = io("http://192.168.0.227:3000", {
     transports: ["websocket"],
     withCredentials: true
 });
+
+//LOBBY MANAGING
+function createLobby(){
+    const desc = lobby_desc.value;
+    const space = lobby_space.value;
+    const name = lobby_name.value
+    const visibility = lobby_visibility.checked
+
+
+
+    fetch('http://192.168.0.227:3000/api/createLobby', {
+        method : "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify( {
+            "desc" : desc,
+            "space" : space,
+            "name" : name,
+            "visibility" : visibility,
+            "socketid" : socket.id
+        })
+    })
+}
+
+function joinLobby(id, code){
+    console.log('joins')
+    socket.emit('joinLobby', id, code)
+}
+socket.emit('fetchLobbies')
+
+function removeButtons() {
+    const lobby = document.querySelector(`div[name="${document.getElementById('lobby-name-show').getAttribute('name')}"]`)
+    if (!lobby) return
+    const button = lobby.querySelector("button");
+    const input = lobby.querySelector("input");
+
+    if (button) button.remove();
+    if (input) input.remove();
+}
+
+
+const create_button = document.getElementById('create-lobby-button')
+create_button.addEventListener('mousedown', e => {
+    if (document.getElementById('create-lobby-container').style.display == 'flex'){
+        document.getElementById('create-lobby-container').style.display = 'none'
+    }else if (document.getElementById('create-lobby-container').style.display = 'none'){
+        document.getElementById('create-lobby-container').style.display = 'flex'
+    }
+})
+
+socket.on('joinedLobby', (lobby_name, owner) =>{
+    console.log(lobby_name, owner)
+    if (owner){
+
+        document.getElementById('lobby-name-show').innerText = `YOU'RE AN OWNER OF: ` + lobby_name;
+        document.getElementById('lobby-code-show').style.display = 'flex';
+        document.getElementById('lobby-code-show').innerText = `LOBBY CODE: ${owner}`;
+
+    }else{
+        document.getElementById('lobby-name-show').innerText = `LOBBY: ` + lobby_name;
+    }
+
+    document.getElementById('lobby-name-show').setAttribute('name', lobby_name)
+    removeButtons()
+})
+const template = document.getElementById('lobby-template')
+const lobbies_container = document.getElementById('lobbies-container')
+
+socket.on('updateLobbies', (data) => {
+    lobbies_container.innerHTML = ''
+    let buttons = []
+    data.forEach(lobby => {
+        console.log(lobby)
+        const cloned_lobby = template.cloneNode(true)
+        const cloned_name = cloned_lobby.querySelector('#lobby-name');
+        const cloned_space = cloned_lobby.querySelector('#lobby-space');
+        const cloned_desc = cloned_lobby.querySelector('#lobby-desc');
+        const cloned_button = cloned_lobby.querySelector("button");
+        const cloned_input = cloned_lobby.querySelector("input");
+        cloned_name.innerText = lobby.name
+        cloned_desc.innerText = lobby.desc
+        cloned_space.innerText = lobby.space
+        cloned_lobby.style.display = 'flex'
+        cloned_button.setAttribute('id', lobby.id)
+        cloned_button.addEventListener('mousedown', () => { 
+            clicked_id = lobby.id;
+            if (lobby.visibility){
+                if (document.getElementById('lobby-code-box').style.display == 'flex'){
+                    document.getElementById('lobby-code-box').style.display = 'none'
+                }else if (document.getElementById('lobby-code-box').style.display == 'none'){
+                    document.getElementById('lobby-code-box').style.display = 'flex'
+                }
+            }else{
+                joinLobby(lobby.id, null)
+            }
+
+
+        })
+        
+
+        cloned_lobby.setAttribute('name', lobby.name);
+
+
+        lobbies_container.appendChild(cloned_lobby)
+        buttons.push([cloned_button, cloned_input])
+
+        console.log('add')
+
+    })
+
+    if (document.getElementById('lobby-code-show').getAttribute('name') != ""){ 
+        removeButtons()
+
+    }    
+
+
+})
+
+document.getElementById('code-submit').addEventListener('mousedown', e => {
+    const code = document.getElementById('code-input').value;
+    document.getElementById('lobby-code-box').style.display = 'none'
+    joinLobby(clicked_id, code)
+})
+
+
+
+submit_lobby.addEventListener('mousedown', e => {
+    createLobby();
+})
+
+
 
 socket.emit('getUsers')
 socket.on('users', (data) => {
@@ -57,6 +201,8 @@ download.addEventListener('mousedown', () => { // https://dzone.com/articles/how
 
 
 //MULTIPLAYER SHIT RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH
+
+
 input_mes.addEventListener('keydown', key => {
     if (key.keyCode == 13){
         socket.emit('newMessage', input_mes.value)
@@ -84,6 +230,8 @@ eraser_btn.addEventListener('mousedown', () => {
 setInterval(() => {
     if (Object.keys(changed_pixels).length > 0){
         socket.emit('drawData', changed_pixels);
+        console.log(changed_pixels)
+
         changed_pixels = {} 
     }
 }, 50)
@@ -92,7 +240,7 @@ socket.on('removeUser', (user) => {
 })
 socket.on('updateBoard', (data) => {
     for (let px in data){
-        changePixel(px.split(',')[0],px.split(',')[1], data[px].color, false, false)
+        changePixel(px.split(',')[0],px.split(',')[1], data[px].color, false)
     }
 })
 
@@ -102,9 +250,10 @@ socket.on('kickOut', () => {
 })
 
 socket.on('setCanvas', (data) => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     for (let px in data){
         const x_y = px.split(',')
-        changePixel(x_y[0], x_y[1], data[px].color, false,false)    
+        changePixel(x_y[0], x_y[1], data[px].color,false)    
     }
 })
 
@@ -139,7 +288,7 @@ function changeUsersPosition(user,x,y,tool){
             break
         }
         case 'eraser' : {
-            target_user_icon.src = './assets/img/cursor.svg'
+            target_user_icon.src = './assets/img/eraser2.svg'
             break
         }
     }
@@ -161,7 +310,6 @@ socket.on('changeUserPosition', data => {
     const x = data.x;
     const y = data.y;
     const tool = data.tool
-    if (user == 'Jery') console.log(x,y,)
     const target_user = getUsersFrame(user)
     if (!target_user){
         addUsersCursor(user)
@@ -182,7 +330,6 @@ drawing_space.addEventListener('mousemove', (e) => {
 //END OF MULTIPLAYER SHIT RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH
 
 
-grid_canvas.style.cursor = "url('./assets/img/cursor.svg') 0 0, auto";
 
 
 
@@ -193,9 +340,13 @@ bucket_btn.addEventListener('mousedown', () => {
 
 brush_btn.addEventListener('mousedown', () => {
     tool = 'brush'
-    body.style.cursor = `url('./assets/img/cursor.svg') 0 0, auto`
+    body.style.cursor = `url('./assets/img/cursor.svg') 0 25, auto`
 })
 
+eraser_btn.addEventListener('mousedown', () => {
+    tool = 'eraser'
+    body.style.cursor = `url('./assets/img/eraser2.svg') 10 28, auto`
+})
 
 
 
@@ -267,7 +418,7 @@ function calculateSurrounding(cx, cy, color=color_input.value) {
         const px = point[0];
         const py = point[1];
         const equation = Math.pow((px - cx), 2) + Math.pow((py - cy), 2)
-
+        
         if (equation <= Math.pow(radius, 2)) {
             approved_points.push(point)
             changePixel(px,py,color)
@@ -282,7 +433,7 @@ function undo() {
     const latest_undo_data = undo_stack[undo_stack.length - 1]
     for (key in latest_undo_data) {
         if (latest_undo_data[key].prev_color) {
-            changePixel(key.split(',')[0], key.split(',')[1], latest_undo_data[key].prev_color, false)
+            changePixel(key.split(',')[0], key.split(',')[1], latest_undo_data[key].prev_color, true)
         }
     }
 
@@ -314,15 +465,15 @@ function addPixelToQueue(x, y, color) {
     }
 }
 
-
-function changePixel(x, y, color = 'black', save_to_undo = true, yours=true) {//zmienia pixel na canvasie, save_to_undo zapobiega rekursywnemy wykonywaniu przez undo
+//yours 
+function changePixel(x, y, color = 'black', yours=true) {//zmienia pixel na canvasie, save_to_undo zapobiega rekursywnemy wykonywaniu przez undo
     if (yours){
         addPixelToQueue(x,y,color)
     }
 
     ctx.fillStyle = color;
 
-    if (save_to_undo && yours) {
+    if (yours) {
         modifyLatestUndo(x, y, color, getPixelColor(x, y))
     }
     if (color == 'transparent'){
@@ -357,7 +508,7 @@ function getColotFromImg(imageData, gx, gy) {
 
 
 let clicked_color;
-function fillBucket(x, y, recurrention = false) {
+function fillBucket(x, y) {
     if (x * grid_frequency < 0 || x * grid_frequency >= grid_canvas.width || y * grid_frequency < 0 || y * grid_frequency >= grid_canvas.height) return
     const width = Math.floor(grid_canvas.width / grid_frequency)
     const height = Math.floor(grid_canvas.height / grid_frequency)
@@ -398,10 +549,14 @@ canvas.addEventListener('mousedown', (e) => {
     addNewUndo();
 
     mouse_down = true;
-    const fixed_xy = fixXY(e.offsetX, e.offsetY)
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
 
-    const fixed_x = fixed_xy[0]
-    const fixed_y = fixed_xy[1]
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
+    const [fixed_x, fixed_y] = fixXY(x,y)
     switch (tool) {
         case 'bucket': {
             fillBucket(fixed_x, fixed_y)
@@ -412,8 +567,6 @@ canvas.addEventListener('mousedown', (e) => {
 
             calculateSurrounding(fixed_x, fixed_y)
             addPixelToQueue(fixed_x, fixed_y, color_input.value)
-
-            let dat = ctx.getImageData(0, 0, grid_canvas.width, grid_canvas.height)
             break
         }
         case 'eraser': {
@@ -430,20 +583,24 @@ canvas.addEventListener('mouseup', (e) => {
 })
 let last_x;
 let last_y;
-
-
+  
 canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+
     if (mouse_down && (tool == 'brush' || tool == 'eraser')) {
-        console.log(tool)
         let color;
         if (tool == 'eraser') {
             color = 'transparent'
-
         }else{
             color = color_input.value
         }
-
-        const fixed_xy = fixXY(e.offsetX, e.offsetY)
+        
+        const fixed_xy = fixXY(x, y)
         const fixed_x = fixed_xy[0]
         const fixed_y = fixed_xy[1]
         calculateSurrounding(fixed_x, fixed_y, color)
@@ -454,7 +611,7 @@ canvas.addEventListener('mousemove', (e) => {
             const delta = Math.sqrt(dx * dx + dy * dy); // dlugosc najszybszej drogi (zwyklej prostej) od pozycji z poprzedniego 'ticka' do obecnej
 
             if (delta > 0.3 * size) { //jezeli zmiana jest wieksza niz 1/3 wielkosci pedzla -> wygladzamy
-                const steps = Math.floor(delta / size / 0.3) // dziele te droge na odcinki 1/3 wielkosci pedzla, jest to ilosc dodatkowych punktow miedzy ostatnia i obecna pozycja myszy
+                const steps = Math.floor(delta / size / 0.2) // dziele te droge na odcinki 1/3 wielkosci pedzla, jest to ilosc dodatkowych punktow miedzy ostatnia i obecna pozycja myszy
 
 
                 for (let i = 0; i <= steps; i++) {
@@ -489,16 +646,11 @@ canvas.addEventListener('mouseleave', e => {
 
 document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.key == 'z') {
-        console.log('ctrl z')
         undo();
     }
 })
 
-
-
-
-
 size_input.addEventListener('input', e => {
     size_text.innerText = `Size: ${e.target.value}`
-    size = size = parseInt(e.target.value);
+    size = parseInt(e.target.value);
 })
