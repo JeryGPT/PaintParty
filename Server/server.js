@@ -4,6 +4,8 @@ const { Server } = require('socket.io');
 const CryptoJS = require("crypto-js");
 const cors = require('cors');
 const { join } = require('path');
+const IP = "192.168.0.227"
+const PORT = 3000
 
 const key = "afa42da3lp";
 
@@ -30,21 +32,21 @@ let lobbies = {
 
 }
 
-function* code_generator() {
+function* codeGenerator() {
   while (1) {
     yield Math.floor( Math.random() * 1000000 + 100000)
   }
 }
 
-function* id_generator() {
+function* idGenerator() {
   while (1) {
     yield Math.floor( Math.random() * 1000000000 + 100000000)
   }
 }
 
 
-const gen = code_generator()
-const id_gen = id_generator()
+const gen = codeGenerator()
+const id_gen = idGenerator()
 
 
 const io = new Server(server, { 
@@ -95,7 +97,7 @@ function updateArt(data, id){
 
 }
 
-function retreive_nicknames(id = null){
+function retreiveNicknames(id = null){
   let nicks = [];
   if (id && lobbies[id]){
     nicks = lobbies[id].players.slice();
@@ -159,7 +161,7 @@ function removeFromLobby(username) {
     lobbies[id].players.forEach(player => {
       const playerSocket = users_online[player]?.socket;
       if (playerSocket){
-        io.to(playerSocket).emit('users', retreive_nicknames(id));
+        io.to(playerSocket).emit('users', retreiveNicknames(id));
         io.to(playerSocket).emit('removeUser',  username) 
       }
     });
@@ -232,7 +234,7 @@ io.on('connection', (socket) => {
     lobbies[lobbyId].players.forEach(player => {
       const playerSocket = users_online[player]?.socket;
       if (playerSocket){
-        io.to(playerSocket).emit('users', retreive_nicknames(lobbyId));
+        io.to(playerSocket).emit('users', retreiveNicknames(lobbyId));
       }
     });
   }
@@ -258,7 +260,7 @@ io.on('connection', (socket) => {
     removeFromLobby(socket.username);
     delete users_online[socket.username]
     delete spam_interval[socket.username]
-    io.emit('users', retreive_nicknames())
+    io.emit('users', retreiveNicknames())
     io.emit('removeUser', socket.username)
     io.emit('newMessage', 'User ' + socket.username + " left.")
   });
@@ -291,7 +293,7 @@ io.on('connection', (socket) => {
       lobbies[lobbyId].players.forEach(player => {
         const playerSocket = users_online[player]?.socket;
         if (playerSocket){
-          io.to(playerSocket).emit('users', retreive_nicknames(lobbyId));
+          io.to(playerSocket).emit('users', retreiveNicknames(lobbyId));
         }
       });
     }
@@ -324,7 +326,7 @@ io.on('connection', (socket) => {
       lobbies[id].players.forEach(player => {
         const playerSocket = users_online[player]?.socket;
         if (playerSocket){
-          io.to(playerSocket).emit('users', retreive_nicknames(id));
+          io.to(playerSocket).emit('users', retreiveNicknames(id));
         }
       });
     }
@@ -371,6 +373,6 @@ app.post('/api/createLobby', (req, res) => {
 })
 
 
-server.listen(3000, '192.168.0.227', () => {
+server.listen(PORT, IP, () => {
   console.log('Node.js socket server running on port 3000');
 });

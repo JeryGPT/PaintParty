@@ -1,0 +1,7 @@
+node server/server.js
+
+trzeba ustawic swoje porty w server.js i script.js
+
+oraz php -S 192.168.0....:.... -t Public
+
+na 2 backendy
