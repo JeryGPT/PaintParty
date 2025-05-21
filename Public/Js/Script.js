@@ -34,7 +34,7 @@ const MAX_UNDO = 50
 const MAX_ZOOM = 4
 const ZOOM_STEP = 0.25
 const MIN_ZOOM = 0
-const IP = "192.168.0.227"
+const IP = "192.168.0.122"
 const PORT = "3000"
 
 // Variables
@@ -460,6 +460,7 @@ submit_lobby.addEventListener('mousedown', e => {
 
 document.getElementById('code-submit').addEventListener('mousedown', e => {
     const code = document.getElementById('code-input').value
+
     document.getElementById('lobby-code-box').style.display = 'none'
     joinLobby(clicked_id, code)
 })
@@ -522,7 +523,8 @@ socket.on('updateLobbies', (data) => {
         cloned_button.setAttribute('id', lobby.id)
         cloned_button.addEventListener('mousedown', () => { 
             clicked_id = lobby.id
-            if (lobby.visibility){
+            console.log(lobby)
+            if (lobby.private){
                 if (document.getElementById('lobby-code-box').style.display == 'flex'){
                     document.getElementById('lobby-code-box').style.display = 'none'
                 }else if (document.getElementById('lobby-code-box').style.display == 'none'){

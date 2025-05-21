@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const CryptoJS = require("crypto-js");
 const cors = require('cors');
 const { join } = require('path');
-const IP = "192.168.0.227"
+const IP = "192.168.0.122"
 const PORT = 3000
 
 const key = "afa42da3lp";
@@ -12,7 +12,7 @@ const key = "afa42da3lp";
 const app = express();
 const server = http.createServer(app);
 app.use(cors({
-  origin: 'http://192.168.0.227:8000'
+  origin: `http://192.168.0.122:8000`
 }));
 
 app.use(express.json());
@@ -80,6 +80,7 @@ function verifyJwt(token){
 
 
 function updateArt(data, id){
+    if (!lobbies[id]) return;
     let board = lobbies[id].board
 
     for (let px in data){
@@ -175,26 +176,15 @@ function addToLobby(username, id, socket, code, owner=false) {
     return false;
   }
 
-  if (lobby.visibility && lobby.code !== code) {
-    socket.emit('joinError', 'Invalid lobby code.');
-    return false;
-  }
-
   if (lobbies[id].code){
-    if (lobbies[id].code == code){
-      removeFromLobby(username); 
-
-      users_online[username].in_lobby = id;
-    }else{
-
+    if (lobbies[id].code != code){
+      console.log('wypierdalaj')
       return
     }
-      
-  }else{
+  }
     removeFromLobby(username); 
 
     users_online[username].in_lobby = id;
-  }
   
   lobby.players.push(username);
 
@@ -323,6 +313,7 @@ io.on('connection', (socket) => {
   socket.on('joinLobby', (id, code) => {
     addToLobby(socket.username, id, socket, code);
     if (id) {
+      if (!lobbies[id]) return;
       lobbies[id].players.forEach(player => {
         const playerSocket = users_online[player]?.socket;
         if (playerSocket){
