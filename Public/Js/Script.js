@@ -34,6 +34,8 @@ const MAX_UNDO = 50
 const MAX_ZOOM = 4
 const ZOOM_STEP = 0.25
 const MIN_ZOOM = 0
+const IP = "192.168.0.227"
+const PORT = "3000"
 
 // Variables
 let mouse_down = false
@@ -49,7 +51,7 @@ let last_x
 let last_y
 let clicked_color
 
-const socket = io("http://192.168.0.227:3000", {
+const socket = io(`http://${IP}:${PORT}`, {
     transports: ["websocket"],
     withCredentials: true
 })
@@ -287,7 +289,7 @@ function createLobby(){
     const name = lobby_name.value
     const visibility = lobby_visibility.checked
 
-    fetch('http://192.168.0.227:3000/api/createLobby', {
+    fetch(`http://${IP}:${PORT}/api/createLobby`, {
         method : "POST",
         headers: {
             "Content-Type": "application/json"
