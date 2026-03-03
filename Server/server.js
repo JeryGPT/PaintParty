@@ -1,18 +1,22 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io'); 
-const CryptoJS = require("crypto-js");
-const cors = require('cors');
-const { join } = require('path');
-const IP = "192.168.0.122"
-const PORT = 3000
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io'; 
+import CryptoJS from "crypto-js";
+import cors from 'cors';
+import { join } from 'path';
+import { verifyJwt, generateJwt, login, register } from './auth.js';
+import { env } from 'process';
+const IP = "0.0.0.0"
+const PORT = 2000
+import path from 'path';
+import exp from 'constants';
 
-const key = "afa42da3lp";
 
 const app = express();
+app.use(express.urlencoded({ extended: true }));
 const server = http.createServer(app);
 app.use(cors({
-  origin: `http://192.168.0.122:8000`
+  origin: `http://0.0.0.0:2000`
 }));
 
 app.use(express.json());
@@ -27,7 +31,8 @@ let lobbies = {
     "visibility" : false,
     "code" : null,
     "board" : {},
-    "players" : []
+    "players" : [],
+    "last_quit" : 0,
   }
 
 }
@@ -40,7 +45,7 @@ function* codeGenerator() {
 
 function* idGenerator() {
   while (1) {
-    yield Math.floor( Math.random() * 1000000000 + 100000000)
+    yield String(Math.floor( Math.random() * 1000000000 + 100000000))
   }
 }
 
@@ -56,27 +61,7 @@ const io = new Server(server, {
     },
   });
 
-function verifyJwt(token){
-  if (token){
-    token = token.split('account_token=')[1]
-    if (!token) return
-    const [header, payload, signature] = token.split('.')
 
-    const data = header + '.' + payload
-    console.log(data)
-    const hex_js = btoa(CryptoJS.HmacSHA256(data, key)).replace('==', '');
-    if (hex_js === signature){
-      const decoded_header = atob(header);
-      const decoded_payload = JSON.parse(atob(payload))
-      const now = Math.floor(Date.now() / 1000)
-      if (decoded_payload.exp >= now){
-        console.log('valid: ', decoded_payload.username, ' for: ', decoded_payload.exp - now, 's', now)
-        return decoded_payload.username
-      }
-    }
-  }
-  return false
-}
 
 
 function updateArt(data, id){
@@ -113,17 +98,16 @@ function retreiveNicknames(id = null){
 
 function checkForEmptyLobbies(){
   for (let id in lobbies){
-    if (lobbies[id].players.length == 0){
-      if (id !== "public"){
+    if (lobbies[id].players.length == 0 && id !== 'public' && ((lobbies[id].visibility == true && lobbies[id].last_quit + 10 < Math.floor(Date.now() / 1000)) ||(lobbies[id].visibility == false && lobbies[id].last_quit + 120 < Math.floor(Date.now() / 1000))) ){ //usun prywatne lobby jak przez 10s nikogo niema i publiczne jak 120s
         delete lobbies[id];
-      }
+      
     }
   }
 }
 
 function getLobbiesData() {
-  checkForEmptyLobbies()
   let data = [];
+  checkForEmptyLobbies()
 
   for (let lobby_id in lobbies) {
     data.push({
@@ -135,7 +119,13 @@ function getLobbiesData() {
     });
   }
   io.emit('updateLobbies', data)
+
 }
+
+
+setTimeout(() => {
+  getLobbiesData()
+}, 5000)
 
 function findUsersLobby(user_username) {
   for (let lobby_id in lobbies) {
@@ -150,15 +140,16 @@ function findUsersLobby(user_username) {
 function removeFromLobby(username) {
   
   const id = findUsersLobby(username)
-  console.log(`in lobby`, id)
   if (!id) return
+  users_online[username].lobby_id = "public"
   const idx = lobbies[id].players.indexOf(username);
     if (idx !== -1) {
       lobbies[id].players.splice(idx, 1);
   }
-  getLobbiesData();
   if (id) {
+    lobbies[id].last_quit = Date.now() / 1000
     if (!lobbies[id]) return
+    
     lobbies[id].players.forEach(player => {
       const playerSocket = users_online[player]?.socket;
       if (playerSocket){
@@ -167,9 +158,12 @@ function removeFromLobby(username) {
       }
     });
   }
+  getLobbiesData();
+  
 }
 
 function addToLobby(username, id, socket, code, owner=false) {
+  
   const lobby = lobbies[id];
   if (!lobby) {
     socket.emit('joinError', 'Lobby not found.');
@@ -182,11 +176,13 @@ function addToLobby(username, id, socket, code, owner=false) {
       return
     }
   }
-    removeFromLobby(username); 
-
-    users_online[username].in_lobby = id;
-  
+  removeFromLobby(username); 
   lobby.players.push(username);
+
+  users_online[username].in_lobby = id;
+  if (!lobby.players.includes(username)) {
+    lobby.players.push(username);
+  }
 
   socket.emit('setCanvas', lobby.board);
   lobby.players.forEach(player => {
@@ -208,10 +204,26 @@ function addToLobby(username, id, socket, code, owner=false) {
   return true;
 }
 
+function getSpecificCookie(cookies, cookie_name) {
+  if (!cookies) return;
+  const cookies_splitted = cookies.split("; ");
+  for (let cookie of cookies_splitted) {
+    if (cookie.startsWith(cookie_name)) {
+      return cookie.split('=')[1];
+    }
+  }
+  return null
+}
+
 
 io.on('connection', (socket) => {
-  const verify_JWT = verifyJwt(socket.handshake.headers.cookie)
+  const user_token = socket.handshake.auth.token
+  const verify_JWT = verifyJwt(user_token)
+  console.log("TOKEN: ", user_token)
+
+ 
   if (verify_JWT){
+    
     socket.username = verify_JWT
     socket.emit('setCanvas', lobbies["public"].board)
     users_online[socket.username] = {'socket': socket.id, 'in_lobby' : "public"}
@@ -220,14 +232,14 @@ io.on('connection', (socket) => {
     io.emit('newMessage', 'User ' + socket.username + " joined.")
 
     const lobbyId = users_online[socket.username]?.in_lobby;
-  if (lobbyId) {
-    lobbies[lobbyId].players.forEach(player => {
-      const playerSocket = users_online[player]?.socket;
-      if (playerSocket){
-        io.to(playerSocket).emit('users', retreiveNicknames(lobbyId));
-      }
-    });
-  }
+    if (lobbyId) {
+      lobbies[lobbyId].players.forEach(player => {
+        const playerSocket = users_online[player]?.socket;
+        if (playerSocket){
+          io.to(playerSocket).emit('users', retreiveNicknames(lobbyId));
+        }
+      });
+    }
 
   }else{
     socket.emit('kickOut');
@@ -237,9 +249,9 @@ io.on('connection', (socket) => {
 
     socket.on('drawData', data => {
       const user_lobby = users_online[socket.username].in_lobby
-      updateArt(data, user_lobby)
-
       if (user_lobby){
+        updateArt(data, user_lobby)
+        console.log(user_lobby, 'user_lobby', lobbies)
         lobbies[user_lobby].players.forEach(player =>{
           io.to(users_online[player].socket).emit('updateBoard', data)
         })
@@ -328,6 +340,27 @@ io.on('connection', (socket) => {
   })
 });
 
+function createLobby(name, description, space, visibility) {
+  const id = id_gen.next().value
+  let code;
+  if (visibility) {
+    code = gen.next().value;
+  }else{
+    code = null;
+    visibility = false;
+  }
+  lobbies[id] = {
+    "name" : name,
+    "desc" : description,
+    "space" : space,
+    "visibility" : visibility,
+    "code" : code,
+    "board" : {},
+    "players" : [],
+    "last_quit" : Math.floor(Date.now() / 1000)
+  }
+  return id
+}
 
 app.post('/api/createLobby', (req, res) => {
   const values = req.body
@@ -339,31 +372,47 @@ app.post('/api/createLobby', (req, res) => {
   const socket_instance = io.sockets.sockets.get(values.socketid)
   const username = socket_instance.username;
 
-  let code;
-  if (visibility) {
-    code = gen.next().value;
-  }else{
-    code = null;
-    visibility = false;
-  }
 
 
-  const id = id_gen.next().value
 
-  lobbies[id] = {
-    "name" : name,
-    "desc" : desc,
-    "space" : space,
-    "visibility" : visibility,
-    "code" : code,
-    "board" : {},
-    "players" : []
-  }
-  addToLobby(username, id, socket_instance, code, true)
+  const new_lobby_id = createLobby(name, desc, space, visibility);
+  const new_lobby = lobbies[new_lobby_id]
+  console.log("NEW LOBBY: ", lobbies)
+
+  addToLobby(username, new_lobby_id, socket_instance, new_lobby.code, true)
+  getLobbiesData();
 
 })
 
+app.post("/api/login", async (req, res) => {
+  const values = req.body;
+  const username = values.username;
+  const password = values.password;
+  const cookie = values.cookie;
+  const action = values.action
+  console.log(action, ' dad a', values)
+  if (action == "cookie_login") {
+    console.log("CL")
+    if (verifyJwt(cookie)){
+      return res.json({success: true, token: values.cookie, message: "login successfull"});
+    }else{
+      return res.json({success: false, message: "token expired"});
+      
+    }
+  }
+  if (await login(username, password)) {
+    return res.json({success: true, "token": generateJwt(username), message: "login successfull"});
+  }else{
+   return  res.json({success: false, "error": "User doesn't exist or the password is incorrect"});
+  }
+
+})
+app.use(express.static(path.resolve('..', 'Public')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.resolve('..', 'Public', 'Signin.html'));
+});
 
 server.listen(PORT, IP, () => {
-  console.log('Node.js socket server running on port 3000');
+  console.log('Node.js socket server running on port 2000');
 });

@@ -3,7 +3,7 @@ if (!extension_loaded('mysqli')) {
     die('mysqli extension is not enabled');
 }
 
-$JWT_KEY = 'afa42da3lp';
+$JWT_KEY = 'afa42dafd3lp';
 
 $servername = "kmpv0.h.filess.io";
 $username = "PaintParty_wouldbare";
